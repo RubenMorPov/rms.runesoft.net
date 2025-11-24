@@ -142,7 +142,7 @@ Para habilitar notificaciones por email cuando se recibe un mensaje:
 
 ## Tecnologías
 
-- **Spring Boot 3.3.5**
+- **Spring Boot 3.4.0**
 - **Java 21**
 - **PostgreSQL 16**
 - **RabbitMQ 3.13**
