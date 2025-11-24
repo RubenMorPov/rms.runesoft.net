@@ -24,18 +24,26 @@ rms.runesoft.net/
 │       │   ├── consumer/
 │       │   │   └── MessageConsumer.java
 │       │   ├── controller/
-│       │   │   └── MessageController.java
+│       │   │   ├── MessageController.java
+│       │   │   └── UptimeKumaController.java
 │       │   ├── entity/
-│       │   │   └── Message.java
+│       │   │   ├── Message.java
+│       │   │   └── UptimeAlert.java
 │       │   ├── model/
-│       │   │   └── MessageDTO.java
+│       │   │   ├── MessageDTO.java
+│       │   │   └── UptimeKumaWebhookDTO.java
 │       │   ├── repository/
-│       │   │   └── MessageRepository.java
+│       │   │   ├── MessageRepository.java
+│       │   │   └── UptimeAlertRepository.java
 │       │   └── service/
-│       │       └── MessageService.java
+│       │       ├── EmailService.java
+│       │       ├── MessageService.java
+│       │       └── UptimeKumaService.java
 │       └── resources/
 │           └── application.yml
-└── pom.xml
+├── pom.xml
+├── EMAIL_SETUP.md
+└── UPTIME_KUMA_SETUP.md
 ```
 
 ## Inicio Rápido
@@ -64,7 +72,9 @@ La aplicación estará disponible en `http://localhost:8080`
 
 ### Endpoints API
 
-#### Enviar un mensaje a RabbitMQ
+#### Mensajería
+
+**Enviar un mensaje a RabbitMQ:**
 ```bash
 POST http://localhost:8080/api/messages/send
 Content-Type: application/json
@@ -76,14 +86,53 @@ Content-Type: application/json
 }
 ```
 
-#### Obtener todos los mensajes
+**Obtener todos los mensajes:**
 ```bash
 GET http://localhost:8080/api/messages
 ```
 
-#### Obtener mensajes por remitente
+**Obtener mensajes por remitente:**
 ```bash
 GET http://localhost:8080/api/messages/sender/usuario@example.com
+```
+
+#### Uptime Kuma Integration
+
+**Recibir webhook de Uptime Kuma:**
+```bash
+POST http://localhost:8080/api/uptime/webhook
+Content-Type: application/json
+
+{
+  "heartbeat": "{...}",
+  "monitor": "{...}",
+  "msg": "Monitor is down",
+  "monitorName": "API Production",
+  "monitorUrl": "https://api.example.com",
+  "status": "down",
+  "ping": "5000",
+  "time": "2024-01-15T10:30:00"
+}
+```
+
+**Obtener todas las alertas:**
+```bash
+GET http://localhost:8080/api/uptime/alerts
+```
+
+**Obtener las 10 alertas más recientes:**
+```bash
+GET http://localhost:8080/api/uptime/alerts/recent
+```
+
+**Obtener alertas de un monitor específico:**
+```bash
+GET http://localhost:8080/api/uptime/alerts/monitor/{monitorName}
+```
+
+**Obtener alertas por estado (up/down/pending):**
+```bash
+GET http://localhost:8080/api/uptime/alerts/status/{status}
 ```
 
 ## Configuración
@@ -133,12 +182,26 @@ Para habilitar notificaciones por email cuando se recibe un mensaje:
 
 ## Flujo de Trabajo
 
+### Mensajería RabbitMQ
+
 1. El cliente envía un mensaje a través del endpoint `/api/messages/send`
 2. El mensaje se publica en RabbitMQ (exchange: `rms.exchange`, routing key: `rms.routing.key`)
 3. El `MessageConsumer` escucha la cola `rms.queue` y recibe el mensaje
 4. El mensaje se procesa y se guarda en PostgreSQL
 5. **[NUEVO]** Se envía una notificación por email con el contenido del mensaje (si está habilitado)
 6. Los mensajes guardados pueden consultarse mediante los endpoints GET
+
+### Uptime Kuma Integration
+
+1. Uptime Kuma detecta un cambio de estado en un monitor
+2. Envía un webhook HTTP POST a `/api/uptime/webhook`
+3. La aplicación recibe el webhook y procesa los datos
+4. La alerta se guarda en PostgreSQL (tabla `uptime_alerts`)
+5. Se publica un mensaje en RabbitMQ con los detalles de la alerta
+6. Si el estado es "down", se envía un email de notificación (si está habilitado)
+7. Las alertas pueden consultarse mediante los endpoints GET
+
+Para más detalles sobre cómo configurar Uptime Kuma, consulta [UPTIME_KUMA_SETUP.md](UPTIME_KUMA_SETUP.md).
 
 ## Tecnologías
 
