@@ -100,13 +100,45 @@ GET http://localhost:8080/api/messages/sender/usuario@example.com
 - **Contraseña**: rms_password
 - **Management UI**: http://localhost:15672
 
+### Email (Opcional)
+Para habilitar notificaciones por email cuando se recibe un mensaje:
+
+1. Copia el archivo de ejemplo:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Configura las variables de entorno en el archivo `.env`:
+   - `MAIL_USERNAME`: Tu email (ej: Gmail)
+   - `MAIL_PASSWORD`: App password de tu cuenta de email
+   - `NOTIFICATION_EMAIL`: Email donde recibirás las notificaciones
+
+3. **Para Gmail**: Genera una App Password en https://myaccount.google.com/apppasswords
+
+4. Ejecuta la aplicación con las variables de entorno:
+   ```bash
+   # Windows PowerShell
+   $env:MAIL_USERNAME="tu-email@gmail.com"
+   $env:MAIL_PASSWORD="tu-app-password"
+   $env:NOTIFICATION_EMAIL="destino@example.com"
+   mvn spring-boot:run
+   ```
+
+5. Para deshabilitar las notificaciones por email, configura en `application.yml`:
+   ```yaml
+   email:
+     notification:
+       enabled: false
+   ```
+
 ## Flujo de Trabajo
 
 1. El cliente envía un mensaje a través del endpoint `/api/messages/send`
 2. El mensaje se publica en RabbitMQ (exchange: `rms.exchange`, routing key: `rms.routing.key`)
 3. El `MessageConsumer` escucha la cola `rms.queue` y recibe el mensaje
 4. El mensaje se procesa y se guarda en PostgreSQL
-5. Los mensajes guardados pueden consultarse mediante los endpoints GET
+5. **[NUEVO]** Se envía una notificación por email con el contenido del mensaje (si está habilitado)
+6. Los mensajes guardados pueden consultarse mediante los endpoints GET
 
 ## Tecnologías
 
@@ -116,6 +148,7 @@ GET http://localhost:8080/api/messages/sender/usuario@example.com
 - **RabbitMQ 3.13**
 - **Spring AMQP**
 - **Spring Data JPA**
+- **Spring Mail** (notificaciones por email)
 - **Lombok**
 
 ## Desarrollo
